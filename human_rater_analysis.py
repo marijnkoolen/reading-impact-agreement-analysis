@@ -24,7 +24,7 @@ def complete_unanswerable(annotation: Dict, headers: List[str]) -> None:
             annotation[header] = "NA"
 
 
-def calculate_avg_rater_score(impact_scale, sentence, avg_type="mean"):
+def calculate_avg_rater_score(impact_scale: str, sentence: dict, avg_type: str = "mean") -> float:
     scores = [anno[impact_scale] for anno in sentence["annotations"] if isinstance(anno[impact_scale], int)]
     if avg_type == "mean":
         return statistics.mean(scores)
@@ -36,7 +36,7 @@ def calculate_avg_rater_score(impact_scale, sentence, avg_type="mean"):
         raise ValueError("avg_type must be one of 'mean', 'median' or 'mode'")
 
 
-def calculcate_inter_rater_agreement(rater_scores):
+def calculcate_inter_rater_agreement(rater_scores: List[int]) -> float:
     # σ^2 * mv = 0.5(X_U^2 + X_L^2)−[0.5(X_U + X_L)]2
     #          = 0.5(5^2 + 1^2) - [0.5(5+1)]^2
     #          = 0.5(26) - [0.5(6)]^2
@@ -49,26 +49,26 @@ def calculcate_inter_rater_agreement(rater_scores):
     return ira_score
 
 
-def get_sentences_high_ira(sentences, impact_scale, ira_threshold):
+def get_sentences_high_ira(sentences: List[dict], impact_scale: str, ira_threshold: float) -> List[dict]:
     filtered = [sentence for sentence in sentences if len(get_rater_scores(sentence, impact_scale)) > 1]
     return [sentence for sentence in filtered if get_sentence_ira(sentence, impact_scale) >= ira_threshold]
 
 
-def get_sentences_low_ira(sentences, impact_scale, ira_threshold):
+def get_sentences_low_ira(sentences: List[dict], impact_scale: str, ira_threshold: float) -> list[dict]:
     filtered = [sentence for sentence in sentences if len(get_rater_scores(sentence, impact_scale)) > 1]
     return [sentence for sentence in filtered if get_sentence_ira(sentence, impact_scale) < ira_threshold]
 
 
-def get_sentence_ira(sentence, impact_scale):
+def get_sentence_ira(sentence: dict, impact_scale: str) -> float:
     scores = get_rater_scores(sentence, impact_scale)
     return calculcate_inter_rater_agreement(scores)
 
 
-def get_rater_scores(sentence, impact_scale):
+def get_rater_scores(sentence: dict, impact_scale: str) -> List[int]:
     return [anno[impact_scale] for anno in sentence["annotations"] if isinstance(anno[impact_scale], int)]
 
 
-def parse_annotations(sentence, headers, sheet, annotation_row_num):
+def parse_annotations(sentence: dict, headers: List[str], sheet, annotation_row_num: int) -> None:
     for annotation in sentence["annotations"]:
         set_base_cells(sentence, sheet, annotation_row_num)
         sheet.cell(column=3, row=annotation_row_num, value=annotation["annotator"])
@@ -79,12 +79,12 @@ def parse_annotations(sentence, headers, sheet, annotation_row_num):
         annotation_row_num += 1
 
 
-def set_base_cells(sentence, sheet, row_num):
+def set_base_cells(sentence: dict, sheet, row_num: int) -> None:
     sheet.cell(column=1, row=row_num, value=sentence["sentence_id"])
     sheet.cell(column=2, row=row_num, value=sentence["text"])
 
 
-def parse_impact_scale(impact_scale, sentence, sheet, row_num):
+def parse_impact_scale(impact_scale: str, sentence: dict, sheet, row_num: int) -> None:
     set_base_cells(sentence, sheet, row_num)
     num_annotators = len(sentence["annotations"])
     total_score = sum([anno[impact_scale] for anno in sentence["annotations"] if isinstance(anno[impact_scale], int)])
@@ -102,13 +102,13 @@ def parse_impact_scale(impact_scale, sentence, sheet, row_num):
     sheet.cell(column=11, row=row_num, value=rule_based_score)
 
 
-def get_sentence_ratings(data_file):
+def get_sentence_ratings(data_file: str) -> List[dict]:
     with open(data_file, 'rt') as fh:
         data = json.load(fh)
     return [sentence_doc["_source"] for sentence_doc in data]
 
 
-def write_rating_spreadsheet(sentence_ratings):
+def write_rating_spreadsheet(sentence_ratings: List[dict]) -> None:
     wb = Workbook()
     sheets = {
         "annotations": wb.active,

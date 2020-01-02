@@ -2,9 +2,10 @@
 import re
 import json
 from impact_model import ImpactModel
+from typing import Union, List, Dict
 
 
-def is_wildcard_term(term):
+def is_wildcard_term(term: str) -> bool:
     """
     Determine if term is a wildcard term, e.g. starts or ends with an asterix ("*").
     Wildcards on both sides are not allowed, since this is reserved for special terms.
@@ -18,7 +19,7 @@ def is_wildcard_term(term):
         return False
 
 
-def wildcard_term_match(sentence_term, match_term):
+def wildcard_term_match(sentence_term: str, match_term: str) -> bool:
     """this function interprets wildcards in match terms and uses regex to match term against a sentence term"""
     if match_term[0] == "*":
         match_string = match_term[1:] + r"$"
@@ -30,7 +31,7 @@ def wildcard_term_match(sentence_term, match_term):
         return False
 
 
-def term_match(sentence_term, match_term):
+def term_match(sentence_term: str, match_term: str) -> bool:
     """this function matches a term against a sentence term, uses wildcards if given, otherwise exact match"""
     if is_wildcard_term(match_term):
         try:
@@ -44,7 +45,7 @@ def term_match(sentence_term, match_term):
         return False
 
 
-def lemma_term_match(lemma, term):
+def lemma_term_match(lemma: str, term: str) -> bool:
     if is_wildcard_term(term):
         try:
             return wildcard_term_match(lemma, term)
@@ -57,18 +58,18 @@ def lemma_term_match(lemma, term):
         return False
 
 
-def remove_trailing_punctuation(string):
+def remove_trailing_punctuation(string: str) -> str:
     """removes leading and trailing punctuation from a string. Needed for Alpino word nodes"""
     return re.sub(r"^\W*\b(.*)\b\W*$", r"\1", string)
 
 
-def clean_word_node(node):
+def clean_word_node(node: dict) -> None:
     """clean punctuation from Alpino word nodes (lemma and surface word)"""
     node["@word"] = remove_trailing_punctuation(node["@word"])
     node["@lemma"] = remove_trailing_punctuation(node["@lemma"])
 
 
-def get_word_nodes(node):
+def get_word_nodes(node: Union[list, dict]) -> list:
     """parse the top node of an Alpino parse and return all the leave nodes in sentence order"""
     if isinstance(node, list):
         return [descendent for child_node in node for descendent in get_word_nodes(child_node)]
@@ -94,14 +95,14 @@ class AlpinoError(Exception):
 
 class AlpinoSentence(object):
 
-    def __init__(self, alpino_ds):
+    def __init__(self, alpino_ds: dict):
         # TO DO: accept and parse Alpino XML doc and string as input
         self.validate_alpino_ds(alpino_ds)
         self.word_nodes = get_word_nodes(alpino_ds["node"])
         self.sentence_string = alpino_ds["sentence"]["#text"]
         self.alpino_ds = alpino_ds
 
-    def validate_alpino_ds(self, alpino_ds):
+    def validate_alpino_ds(self, alpino_ds: dict):
         """check that the given alpino parse is a valid alpino parse."""
         if not isinstance(alpino_ds, object):
             raise AlpinoError("alpino_ds must be a JSON representation of Alpino XML output")
@@ -114,7 +115,7 @@ class AlpinoSentence(object):
 
 class AlpinoMatcher(object):
 
-    def __init__(self, impact_model, alpino_sentence=None, debug=False):
+    def __init__(self, impact_model: dict, alpino_sentence=None, debug=False):
         if not impact_model or not isinstance(impact_model, ImpactModel):
             raise AlpinoError("AlpinoMatcher must be instantiated with an ImpactModel object")
         self.impact_model = impact_model
@@ -124,26 +125,26 @@ class AlpinoMatcher(object):
         else:
             self.alpino_sentence = None
 
-    def set_alpino_sentence(self, alpino_sentence):
+    def set_alpino_sentence(self, alpino_sentence: Union[AlpinoSentence, dict]):
         if isinstance(alpino_sentence, AlpinoSentence):
             self.alpino_sentence = alpino_sentence
-        elif isinstance(alpino_sentence, object):
+        elif isinstance(alpino_sentence, dict):
             self.alpino_sentence = AlpinoSentence(alpino_sentence)
         else:
             raise AlpinoError("alpino_sentence must be an AlpinoSentence object or a JSON representation of Alpino XML output")
 
-    def term_sentence_match(self, term, word_boundaries=True):
+    def term_sentence_match(self, term: str, word_boundaries: bool = True) -> bool:
         """
         check if term occurs in sentence string.
         Assumes word boundaries \bterm\b by default.
         Use word_boundaries=False for pure string match
         """
         if word_boundaries:
-            return re.search(r"\b" + term + r"\b", self.alpino_sentence.sentence_string)
+            return re.search(r"\b" + term + r"\b", self.alpino_sentence.sentence_string) is not None
         else:
             return term in self.alpino_sentence.sentence_string
 
-    def get_sentence_words_matching_term(self, match_term, ignorecase=True):
+    def get_sentence_words_matching_term(self, match_term: str, ignorecase: bool = True) -> iter:
         for word_index, word_node in enumerate(self.alpino_sentence.word_nodes):
             word = word_node["@word"]
             if ignorecase:

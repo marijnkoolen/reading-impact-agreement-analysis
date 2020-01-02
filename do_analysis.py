@@ -1,4 +1,3 @@
-from typing import List, Dict, Union
 from collections import Counter
 import impact_model_analysis
 import human_rater_analysis
@@ -7,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def plot_agreement_model_bubble(impact_scale, model_agreement, ira_filter):
+def plot_agreement_model_bubble(impact_scale: str, model_agreement: Counter, ira_filter: str) -> None:
     x, y, s = [], [], []
     for rater_score in range(0, 5):
         for model_score in range(0, 2):
@@ -30,7 +29,7 @@ def plot_agreement_model_bubble(impact_scale, model_agreement, ira_filter):
     plt.clf()
 
 
-def plot_num_annotations_distribution(sentence_ratings):
+def plot_num_annotations_distribution(sentence_ratings: list) -> None:
     annotator_freq = Counter()
     for sentence in sentence_ratings:
         if sentence["annotation_status"] == "todo":
@@ -58,7 +57,7 @@ def plot_num_annotations_distribution(sentence_ratings):
     plt.clf()
 
 
-def get_model_agreement(sentences, impact_scale):
+def get_model_agreement(sentences: list, impact_scale: str) -> Counter:
     model_agreement = Counter()
     for sentence in sentences:
         model_score = sentence["model_impact_score"][impact_scale]
@@ -70,7 +69,7 @@ def get_model_agreement(sentences, impact_scale):
     return model_agreement
 
 
-def do_model_agreement_analysis(sentence_ratings, ira_threshold):
+def do_model_agreement_analysis(sentence_ratings: list, ira_threshold: float):
     for impact_scale in config.impact_scales:
         sentences_high_ira = human_rater_analysis.get_sentences_high_ira(sentence_ratings, impact_scale, ira_threshold)
         sentences_low_ira = human_rater_analysis.get_sentences_low_ira(sentence_ratings, impact_scale, ira_threshold)
