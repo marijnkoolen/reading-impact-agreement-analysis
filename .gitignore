@@ -1,0 +1,6 @@
+
+# ignore generated images
+*.png
+
+# ignore generated spreadsheets
+*.xlsx
