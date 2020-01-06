@@ -1,6 +1,7 @@
 from collections import Counter
 import impact_model_analysis
 import human_rater_analysis
+import mann_whitney_u_test
 import config
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -63,9 +64,9 @@ def get_model_agreement(sentences: list, impact_scale: str) -> Counter:
         model_score = sentence["model_impact_score"][impact_scale]
         if model_score > 0:
             model_score = 1
-        rater_scores = human_rater_analysis.get_rater_scores(sentence, impact_scale)
         rater_score = human_rater_analysis.calculate_avg_rater_score(impact_scale, sentence, avg_type="median")
         model_agreement.update([(rater_score, model_score)])
+        #rater_scores = human_rater_analysis.get_rater_scores(sentence, impact_scale)
         #for rater_score in rater_scores:
         #    model_agreement.update([(rater_score, model_score)])
     return model_agreement
@@ -85,6 +86,13 @@ def do_model_agreement_analysis(sentence_ratings: list, ira_threshold: float):
         plot_agreement_model_bubble(impact_scale, model_agreement_low_ira, f"IRA < {ira_threshold}")
 
 
+def do_mann_whitney_u_test(sentence_ratings: list, ira_threshold: float):
+    samples = mann_whitney_u_test.make_mwu_test_samples(sentence_ratings, ira_threshold)
+    for impact_scale in samples:
+        print(impact_scale)
+        mann_whitney_u_test.test_samples(samples[impact_scale])
+
+
 def do_analysis():
     print("Reading human ratings")
     sentence_ratings = human_rater_analysis.get_sentence_ratings(config.ratings_file)
@@ -100,6 +108,8 @@ def do_analysis():
     human_rater_analysis.write_rating_spreadsheet(sentences_done)
     print("Plotting human model rating agreement")
     do_model_agreement_analysis(sentences_done, ira_threshold=0.5)
+    print("Performing Mann-Whitney U test")
+    do_mann_whitney_u_test(sentences_done, ira_threshold=0.5)
 
 
 if __name__ == "__main__":
