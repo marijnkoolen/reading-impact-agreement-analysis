@@ -1,4 +1,5 @@
 from collections import Counter
+from typing import List, Tuple, Union
 import impact_model_analysis
 import human_rater_analysis
 import mann_whitney_u_test
@@ -86,11 +87,38 @@ def do_model_agreement_analysis(sentence_ratings: list, ira_threshold: float):
         plot_agreement_model_bubble(impact_scale, model_agreement_low_ira, f"IRA < {ira_threshold}")
 
 
+def sample_model_scores(sentence_ratings: list, impact_scale: str,
+                     ira_threshold: float) -> Tuple[List[float], List[float]]:
+    sample_0 = []
+    sample_1 = []
+    for sentence in sentence_ratings:
+        scores = human_rater_analysis.get_rater_scores(sentence, impact_scale)
+        # skip sentences with only a single rating (and the rest NAs) or with only NAs
+        if len(scores) < 2:
+            continue
+        ira_score = human_rater_analysis.calculcate_inter_rater_agreement(scores)
+        # skip sentences where the IRA is below a given threshold
+        if ira_score < ira_threshold:
+            continue
+        model_score = sentence["model_impact_score"][impact_scale]
+        rater_score = human_rater_analysis.calculate_avg_rater_score(impact_scale, sentence, avg_type="median")
+        if model_score >= 1:
+            sample_1 += [float(rater_score)]
+        else:
+            sample_0 += [float(rater_score)]
+    return sample_0, sample_1
+
+
 def do_mann_whitney_u_test(sentence_ratings: list, ira_threshold: float):
-    samples = mann_whitney_u_test.make_mwu_test_samples(sentence_ratings, ira_threshold)
-    for impact_scale in samples:
+    impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale"]
+    for impact_scale in impact_scales:
         print(impact_scale)
-        mann_whitney_u_test.test_samples(samples[impact_scale])
+        sample_model_0, sample_model_1 = sample_model_scores(sentence_ratings, impact_scale, ira_threshold)
+        test_0, test_1 = mann_whitney_u_test.test_samples(sample_model_0, sample_model_1)
+        print("R model X = 0:", test_0["R"], "\tR model X > 0:", test_1["R"])
+        print("N model X = 0:", test_0["N"], "\tN model X > 0:", test_1["N"])
+        print("U model X = 0:", test_0["U"], "\tU model X > 0:", test_1["U"])
+        print()
 
 
 def do_analysis():
