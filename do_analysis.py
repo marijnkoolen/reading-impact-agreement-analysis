@@ -64,8 +64,10 @@ def get_model_agreement(sentences: list, impact_scale: str) -> Counter:
         if model_score > 0:
             model_score = 1
         rater_scores = human_rater_analysis.get_rater_scores(sentence, impact_scale)
-        for rater_score in rater_scores:
-            model_agreement.update([(rater_score, model_score)])
+        rater_score = human_rater_analysis.calculate_avg_rater_score(impact_scale, sentence, avg_type="median")
+        model_agreement.update([(rater_score, model_score)])
+        #for rater_score in rater_scores:
+        #    model_agreement.update([(rater_score, model_score)])
     return model_agreement
 
 

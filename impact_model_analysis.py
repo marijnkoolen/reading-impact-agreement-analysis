@@ -35,7 +35,7 @@ def read_tarred_sentences(sentences_file: str) -> dict:
     return sentence_data
 
 
-def score_sentence_impact(sentence: dict, alpino_matcher: AlpinoMatcher) -> Dict[int]:
+def score_sentence_impact(sentence: dict, alpino_matcher: AlpinoMatcher) -> Dict[str, int]:
     alpino_ds = json.loads(sentence["alpino_ds"])
     matches = alpino_matcher.match_rules(alpino_sentence=alpino_ds)
     impact_score = defaultdict(int)

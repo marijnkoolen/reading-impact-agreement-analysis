@@ -54,7 +54,7 @@ def get_sentences_high_ira(sentences: List[dict], impact_scale: str, ira_thresho
     return [sentence for sentence in filtered if get_sentence_ira(sentence, impact_scale) >= ira_threshold]
 
 
-def get_sentences_low_ira(sentences: List[dict], impact_scale: str, ira_threshold: float) -> list[dict]:
+def get_sentences_low_ira(sentences: List[dict], impact_scale: str, ira_threshold: float) -> List[dict]:
     filtered = [sentence for sentence in sentences if len(get_rater_scores(sentence, impact_scale)) > 1]
     return [sentence for sentence in filtered if get_sentence_ira(sentence, impact_scale) < ira_threshold]
 
