@@ -1,11 +1,14 @@
 from collections import Counter
 from typing import List, Tuple, Union
+import csv
+import math
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+
 import impact_model_analysis
 import human_rater_analysis
 import mann_whitney_u_test
 import config
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 def plot_agreement_model_bubble(impact_scale: str, model_agreement: Counter, ira_filter: str) -> None:
@@ -73,18 +76,49 @@ def get_model_agreement(sentences: list, impact_scale: str) -> Counter:
     return model_agreement
 
 
+def write_model_agreement_table(agreement_high: Counter, agreement_low: Counter, ira_threshold: float, csv_writer, impact_scale):
+    headers = ["", "model"] + [hr / 2 for hr in range(0, 9)] + ["total"]
+    csv_writer.writerow([f"IRA >= {ira_threshold}", impact_scale, "human rating"])
+    csv_writer.writerow(headers)
+    for model_rating in [0, 1]:
+        counts = []
+        for human_rating in range(0, 9):
+            human_rating = human_rating / 2
+            counts += [agreement_high[(human_rating, model_rating)]]
+        total_counts = sum(counts)
+        percentages = [round(count/total_counts, 2) for count in counts]
+        count_str = [f"{count} ({percentages[ci]})" for ci, count in enumerate(counts)]
+        csv_writer.writerow(["", model_rating] + count_str + [total_counts])
+        # csv_writer.writerow(["", model_rating] + [str(count) for count in counts] + [total_counts])
+    csv_writer.writerow([f"IRA < {ira_threshold}", impact_scale, "human rating"])
+    csv_writer.writerow(headers)
+    for model_rating in [0, 1]:
+        counts = []
+        for human_rating in range(0, 9):
+            human_rating = human_rating / 2
+            counts += [agreement_low[(human_rating, model_rating)]]
+        total_counts = sum(counts)
+        percentages = [round(count/total_counts, 2) for count in counts]
+        count_str = [f"{count} ({percentages[ci]})" for ci, count in enumerate(counts)]
+        csv_writer.writerow(["", model_rating] + count_str + [total_counts])
+        #csv_writer.writerow(["", model_rating] + [str(count) for count in counts] + [total_counts])
+
+
 def do_model_agreement_analysis(sentence_ratings: list, ira_threshold: float):
-    for impact_scale in config.impact_scales:
-        sentences_high_ira = human_rater_analysis.get_sentences_high_ira(sentence_ratings, impact_scale, ira_threshold)
-        sentences_low_ira = human_rater_analysis.get_sentences_low_ira(sentence_ratings, impact_scale, ira_threshold)
-        model_agreement_high_ira = get_model_agreement(sentences_high_ira, impact_scale)
-        model_agreement_low_ira = get_model_agreement(sentences_low_ira, impact_scale)
-        print("  Total sentences:",len(sentence_ratings),
-              f"\tIRA >= ({ira_threshold}):", len(sentences_high_ira),
-              f"\tIRA < ({ira_threshold}):", len(sentences_low_ira),
-              f"\tIgnored (1 or 0 non-NA ratings):", len(sentence_ratings) - len(sentences_high_ira) - len(sentences_low_ira))
-        plot_agreement_model_bubble(impact_scale, model_agreement_high_ira, f"IRA >= {ira_threshold}")
-        plot_agreement_model_bubble(impact_scale, model_agreement_low_ira, f"IRA < {ira_threshold}")
+    with open(f"model_agreement.IRA_treshold-{ira_threshold}.csv", 'wt') as fh:
+        csv_writer = csv.writer(fh, delimiter="\t")
+        for impact_scale in config.impact_scales:
+            sentences_high_ira = human_rater_analysis.get_sentences_high_ira(sentence_ratings, impact_scale, ira_threshold)
+            sentences_low_ira = human_rater_analysis.get_sentences_low_ira(sentence_ratings, impact_scale, ira_threshold)
+            model_agreement_high_ira = get_model_agreement(sentences_high_ira, impact_scale)
+            model_agreement_low_ira = get_model_agreement(sentences_low_ira, impact_scale)
+            write_model_agreement_table(model_agreement_high_ira, model_agreement_low_ira, ira_threshold, csv_writer, impact_scale)
+            print("  Total sentences:",len(sentence_ratings),
+                  f"\tIRA >= ({ira_threshold}):", len(sentences_high_ira),
+                  f"\tIRA < ({ira_threshold}):", len(sentences_low_ira),
+                  f"\tIgnored (1 or 0 non-NA ratings):", len(sentence_ratings) - len(sentences_high_ira) - len(sentences_low_ira))
+            plot_agreement_model_bubble(impact_scale, model_agreement_high_ira, f"IRA >= {ira_threshold}")
+            plot_agreement_model_bubble(impact_scale, model_agreement_low_ira, f"IRA < {ira_threshold}")
 
 
 def sample_model_scores(sentence_ratings: list, impact_scale: str,
@@ -119,6 +153,9 @@ def do_mann_whitney_u_test(sentence_ratings: list, ira_threshold: float):
         print("N model X = 0:", test_0["N"], "\tN model X > 0:", test_1["N"])
         print("U model X = 0:", test_0["U"], "\tU model X > 0:", test_1["U"])
         print()
+        u_statistic, pVal = stats.mannwhitneyu(sample_model_0, sample_model_1)
+        print("SciPy - U:", u_statistic)
+        print("SciPy - p:", pVal)
 
 
 def do_analysis():
