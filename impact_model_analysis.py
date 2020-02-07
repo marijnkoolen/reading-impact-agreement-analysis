@@ -1,9 +1,13 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from collections import defaultdict
 import tarfile
 import json
 import pickle
+from collections import Counter
+import csv
+
 from alpino_matcher import AlpinoMatcher
+import human_rater_analysis
 
 
 def get_sentence_id(member) -> str:
@@ -61,7 +65,7 @@ def load_impact_model(impact_model_file: str) -> dict:
 
 
 def score_impact_sentences(sentence_ratings: List[dict], sentence_alpino_data: dict, config) -> None:
-    impact_model = load_impact_model(config.impact_model_file)
+    impact_model = load_impact_model(config['impact_model_file'])
     alpino_matcher = AlpinoMatcher(impact_model)
     #print("Number of sentences:", len(sentence_ratings))
     for sentence in sentence_ratings:
@@ -72,4 +76,67 @@ def score_impact_sentences(sentence_ratings: List[dict], sentence_alpino_data: d
         #print(impact_score)
         #print(sentence["model_impact_score"])
         # break
+
+
+def sample_model_scores(sentence_ratings: list, impact_scale: str,
+                        ira_threshold: float) -> Tuple[List[float], List[float]]:
+    sample_0 = []
+    sample_1 = []
+    for sentence in sentence_ratings:
+        scores = human_rater_analysis.get_rater_scores(sentence, impact_scale)
+        # skip sentences with only a single rating (and the rest NAs) or with only NAs
+        if len(scores) < 2:
+            continue
+        ira_score = human_rater_analysis.calculcate_inter_rater_agreement(scores)
+        # skip sentences where the IRA is below a given threshold
+        if ira_score < ira_threshold:
+            continue
+        model_score = sentence["model_impact_score"][impact_scale]
+        rater_score = human_rater_analysis.calculate_avg_rater_score(impact_scale, sentence, avg_type="median")
+        if model_score >= 1:
+            sample_1 += [float(rater_score)]
+        else:
+            sample_0 += [float(rater_score)]
+    return sample_0, sample_1
+
+
+def get_model_agreement(sentences: list, impact_scale: str) -> Counter:
+    model_agreement = Counter()
+    for sentence in sentences:
+        model_score = sentence["model_impact_score"][impact_scale]
+        if model_score > 0:
+            model_score = 1
+        rater_score = human_rater_analysis.calculate_avg_rater_score(impact_scale, sentence, avg_type="median")
+        model_agreement.update([(rater_score, model_score)])
+    return model_agreement
+
+
+def write_model_agreement_table(agreement_high: Dict[str, Counter], agreement_low: Dict[str, Counter],
+                                ira_threshold: float, config: dict):
+    with open(f"data/model_agreement.IRA_treshold-{ira_threshold}.csv", 'wt') as fh:
+        csv_writer = csv.writer(fh, delimiter="\t")
+        for impact_scale in config['impact_scales']:
+            headers = ["", "model"] + [hr / 2 for hr in range(0, 9)] + ["total"]
+            csv_writer.writerow([f"IRA >= {ira_threshold}", impact_scale, "human rating"])
+            csv_writer.writerow(headers)
+            for model_rating in [0, 1]:
+                counts = []
+                for human_rating in range(0, 9):
+                    human_rating = human_rating / 2
+                    counts += [agreement_high[impact_scale][(human_rating, model_rating)]]
+                total_counts = sum(counts)
+                percentages = [round(count/total_counts, 2) for count in counts]
+                count_str = [f"{count} ({percentages[ci]})" for ci, count in enumerate(counts)]
+                csv_writer.writerow(["", model_rating] + count_str + [total_counts])
+            csv_writer.writerow([f"IRA < {ira_threshold}", impact_scale, "human rating"])
+            csv_writer.writerow(headers)
+            for model_rating in [0, 1]:
+                counts = []
+                for human_rating in range(0, 9):
+                    human_rating = human_rating / 2
+                    counts += [agreement_low[impact_scale][(human_rating, model_rating)]]
+                total_counts = sum(counts)
+                percentages = [round(count/total_counts, 2) for count in counts]
+                count_str = [f"{count} ({percentages[ci]})" for ci, count in enumerate(counts)]
+            csv_writer.writerow(["", model_rating] + count_str + [total_counts])
 

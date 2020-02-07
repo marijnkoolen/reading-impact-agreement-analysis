@@ -1,180 +1,49 @@
-from collections import Counter
-from typing import List, Tuple, Union
-import csv
-import math
-import matplotlib.pyplot as plt
-import scipy.stats as stats
-
 import impact_model_analysis
 import human_rater_analysis
 import mann_whitney_u_test
-import config
+import plot
+from config import config
 
 
-def plot_agreement_model_bubble(impact_scale: str, model_agreement: Counter, ira_filter: str) -> None:
-    x, y, s = [], [], []
-    for rater_score in range(0, 5):
-        for model_score in range(0, 2):
-            num_sentences = 0
-            score_pair = (rater_score, model_score)
-            if score_pair in model_agreement:
-                num_sentences = model_agreement[score_pair]
-            x += [rater_score]
-            y += [model_score]
-            s += [num_sentences]
-    plt.scatter(x, y, s=s, c="green", alpha=0.4, linewidth=6)
-    # Add titles (main and on axis)
-    plt.xlabel("Rater score")
-    plt.ylabel("Model score")
-    title = f"{impact_scale}, {ira_filter}"
-    plot_file = f"plot_agreement_model-{impact_scale}-IRA-{ira_filter}.png"
-    plot_file = plot_file.replace(" >= ", "-above-").replace(" < ", "-below-")
-    plt.title(title, loc="left")
-    plt.savefig(plot_file)
-    plt.clf()
-
-
-def plot_num_annotations_distribution(sentence_ratings: list) -> None:
-    annotator_freq = Counter()
-    for sentence in sentence_ratings:
-        if sentence["annotation_status"] == "todo":
-            continue
-        if sentence["annotation_status"] == "in_progress":
-            continue
-        elif sentence["annotation_status"] == "done":
-            #if len(sentence["annotations"]) != 3:
-            #    print(sentence["sentence_id"], len(sentence["annotations"]))
-            for annotation in sentence["annotations"]:
-                annotator_freq.update([annotation["annotator"]])
-    print("\tNumber of annotators:", len(annotator_freq.items()))
-    num_sentences_dist = Counter()
-    for annotator, freq in annotator_freq.most_common():
-        num_sentences_dist.update([freq])
-    num_sentences_values, num_sentences_freq = [], []
-    for num_sentences, freq in sorted(num_sentences_dist.items(), key=lambda item: item[0]):
-        num_sentences_values += [num_sentences]
-        num_sentences_freq += [freq]
-    plt.bar(num_sentences_values, num_sentences_freq)
-    plt.xlabel("Number of ratings per rater")
-    plt.ylabel("Number of raters")
-    plt.title("Distribution of raters over number of ratings provided")
-    plt.savefig("impact_ratings_distribution.png")
-    plt.clf()
-
-
-def get_model_agreement(sentences: list, impact_scale: str) -> Counter:
-    model_agreement = Counter()
-    for sentence in sentences:
-        model_score = sentence["model_impact_score"][impact_scale]
-        if model_score > 0:
-            model_score = 1
-        rater_score = human_rater_analysis.calculate_avg_rater_score(impact_scale, sentence, avg_type="median")
-        model_agreement.update([(rater_score, model_score)])
-        #rater_scores = human_rater_analysis.get_rater_scores(sentence, impact_scale)
-        #for rater_score in rater_scores:
-        #    model_agreement.update([(rater_score, model_score)])
-    return model_agreement
-
-
-def write_model_agreement_table(agreement_high: Counter, agreement_low: Counter, ira_threshold: float, csv_writer, impact_scale):
-    headers = ["", "model"] + [hr / 2 for hr in range(0, 9)] + ["total"]
-    csv_writer.writerow([f"IRA >= {ira_threshold}", impact_scale, "human rating"])
-    csv_writer.writerow(headers)
-    for model_rating in [0, 1]:
-        counts = []
-        for human_rating in range(0, 9):
-            human_rating = human_rating / 2
-            counts += [agreement_high[(human_rating, model_rating)]]
-        total_counts = sum(counts)
-        percentages = [round(count/total_counts, 2) for count in counts]
-        count_str = [f"{count} ({percentages[ci]})" for ci, count in enumerate(counts)]
-        csv_writer.writerow(["", model_rating] + count_str + [total_counts])
-        # csv_writer.writerow(["", model_rating] + [str(count) for count in counts] + [total_counts])
-    csv_writer.writerow([f"IRA < {ira_threshold}", impact_scale, "human rating"])
-    csv_writer.writerow(headers)
-    for model_rating in [0, 1]:
-        counts = []
-        for human_rating in range(0, 9):
-            human_rating = human_rating / 2
-            counts += [agreement_low[(human_rating, model_rating)]]
-        total_counts = sum(counts)
-        percentages = [round(count/total_counts, 2) for count in counts]
-        count_str = [f"{count} ({percentages[ci]})" for ci, count in enumerate(counts)]
-        csv_writer.writerow(["", model_rating] + count_str + [total_counts])
-        #csv_writer.writerow(["", model_rating] + [str(count) for count in counts] + [total_counts])
-
-
-def do_model_agreement_analysis(sentence_ratings: list, ira_threshold: float):
-    with open(f"model_agreement.IRA_treshold-{ira_threshold}.csv", 'wt') as fh:
-        csv_writer = csv.writer(fh, delimiter="\t")
-        for impact_scale in config.impact_scales:
-            sentences_high_ira = human_rater_analysis.get_sentences_high_ira(sentence_ratings, impact_scale, ira_threshold)
-            sentences_low_ira = human_rater_analysis.get_sentences_low_ira(sentence_ratings, impact_scale, ira_threshold)
-            model_agreement_high_ira = get_model_agreement(sentences_high_ira, impact_scale)
-            model_agreement_low_ira = get_model_agreement(sentences_low_ira, impact_scale)
-            write_model_agreement_table(model_agreement_high_ira, model_agreement_low_ira, ira_threshold, csv_writer, impact_scale)
-            print("  Total sentences:",len(sentence_ratings),
-                  f"\tIRA >= ({ira_threshold}):", len(sentences_high_ira),
-                  f"\tIRA < ({ira_threshold}):", len(sentences_low_ira),
-                  f"\tIgnored (1 or 0 non-NA ratings):", len(sentence_ratings) - len(sentences_high_ira) - len(sentences_low_ira))
-            plot_agreement_model_bubble(impact_scale, model_agreement_high_ira, f"IRA >= {ira_threshold}")
-            plot_agreement_model_bubble(impact_scale, model_agreement_low_ira, f"IRA < {ira_threshold}")
-
-
-def sample_model_scores(sentence_ratings: list, impact_scale: str,
-                     ira_threshold: float) -> Tuple[List[float], List[float]]:
-    sample_0 = []
-    sample_1 = []
-    for sentence in sentence_ratings:
-        scores = human_rater_analysis.get_rater_scores(sentence, impact_scale)
-        # skip sentences with only a single rating (and the rest NAs) or with only NAs
-        if len(scores) < 2:
-            continue
-        ira_score = human_rater_analysis.calculcate_inter_rater_agreement(scores)
-        # skip sentences where the IRA is below a given threshold
-        if ira_score < ira_threshold:
-            continue
-        model_score = sentence["model_impact_score"][impact_scale]
-        rater_score = human_rater_analysis.calculate_avg_rater_score(impact_scale, sentence, avg_type="median")
-        if model_score >= 1:
-            sample_1 += [float(rater_score)]
-        else:
-            sample_0 += [float(rater_score)]
-    return sample_0, sample_1
-
-
-def do_mann_whitney_u_test(sentence_ratings: list, ira_threshold: float):
-    impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale"]
-    for impact_scale in impact_scales:
-        print(impact_scale)
-        sample_model_0, sample_model_1 = sample_model_scores(sentence_ratings, impact_scale, ira_threshold)
-        test_0, test_1 = mann_whitney_u_test.test_samples(sample_model_0, sample_model_1)
-        print("R model X = 0:", test_0["R"], "\tR model X > 0:", test_1["R"])
-        print("N model X = 0:", test_0["N"], "\tN model X > 0:", test_1["N"])
-        print("U model X = 0:", test_0["U"], "\tU model X > 0:", test_1["U"])
-        print()
-        u_statistic, pVal = stats.mannwhitneyu(sample_model_0, sample_model_1)
-        print("SciPy - U:", u_statistic)
-        print("SciPy - p:", pVal)
+def do_model_agreement_analysis(sentence_ratings: list, ira_threshold: float, config: dict):
+    model_agreement_high = {}
+    model_agreement_low = {}
+    for impact_scale in config['impact_scales']:
+        sentences_high_ira = human_rater_analysis.get_sentences_high_ira(sentence_ratings, impact_scale, ira_threshold)
+        sentences_low_ira = human_rater_analysis.get_sentences_low_ira(sentence_ratings, impact_scale, ira_threshold)
+        model_agreement_high[impact_scale] = impact_model_analysis.get_model_agreement(sentences_high_ira, impact_scale)
+        model_agreement_low[impact_scale] = impact_model_analysis.get_model_agreement(sentences_low_ira, impact_scale)
+        ignored = len(sentence_ratings) - len(sentences_high_ira) - len(sentences_low_ira)
+        print("  Total sentences:",len(sentence_ratings),
+              f"\tIRA >= ({ira_threshold}):", len(sentences_high_ira),
+              f"\tIRA < ({ira_threshold}):", len(sentences_low_ira),
+              f"\tIgnored (1 or 0 non-NA ratings):", ignored)
+        plot.plot_agreement_model_bubble(impact_scale, model_agreement_high, f"IRA >= {ira_threshold}")
+        plot.plot_agreement_model_bubble(impact_scale, model_agreement_low, f"IRA < {ira_threshold}")
+    impact_model_analysis.write_model_agreement_table(model_agreement_high, model_agreement_low,
+                                                      ira_threshold, config)
 
 
 def do_analysis():
     print("Reading human ratings")
-    sentence_ratings = human_rater_analysis.get_sentence_ratings(config.ratings_file)
+    sentence_ratings = human_rater_analysis.get_sentence_ratings(config['ratings_file'])
     print("Plotting rating distribution")
-    plot_num_annotations_distribution(sentence_ratings)
+    plot.plot_num_annotations_distribution(sentence_ratings)
     print("Filtering sentences with at least 3 raters")
     sentences_done = [sentence for sentence in sentence_ratings if sentence["annotation_status"] == "done"]
     print("Reading alpino parses of sentences")
-    sentence_alpino_data = impact_model_analysis.read_tarred_sentences(config.alpino_sentences_file)
+    sentence_alpino_data = impact_model_analysis.read_tarred_sentences(config['alpino_sentences_file'])
     print("Scoring sentences on reading impact")
     impact_model_analysis.score_impact_sentences(sentences_done, sentence_alpino_data, config)
     print("Writing human and model ratings to spreadsheet")
-    human_rater_analysis.write_rating_spreadsheet(sentences_done)
-    print("Plotting human model rating agreement")
-    do_model_agreement_analysis(sentences_done, ira_threshold=0.5)
-    print("Performing Mann-Whitney U test")
-    do_mann_whitney_u_test(sentences_done, ira_threshold=0.5)
+    human_rater_analysis.write_rating_spreadsheet(sentences_done, config)
+    for ira_threshold in [0.5, 0.7]:
+        print(f"Plotting human model rating agreement for IRA >= {ira_threshold}")
+        do_model_agreement_analysis(sentences_done, ira_threshold, config)
+        print(f"Performing Mann-Whitney U test for IRA >= {ira_threshold}")
+        mann_whitney_u_test.do_mann_whitney_u_test(sentences_done, ira_threshold=ira_threshold)
+        print(f"Making model boxplots for IRA>= {ira_threshold}")
+        plot.do_model_box_plot(sentences_done, ira_threshold=ira_threshold)
 
 
 if __name__ == "__main__":

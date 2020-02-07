@@ -1,6 +1,9 @@
 from typing import Dict, List
-from collections import Counter, defaultdict
+from collections import defaultdict
+import scipy.stats as stats
+
 import human_rater_analysis
+import impact_model_analysis
 
 
 def make_mwu_test_samples(sentence_ratings: list, ira_threshold: float) -> Dict[str, List[dict]]:
@@ -69,5 +72,21 @@ def test_samples(sample_model_0: List[float], sample_model_1: List[float]):
         "U": U_model_1
     }
     return test_0, test_1
+
+
+def do_mann_whitney_u_test(sentence_ratings: list, ira_threshold: float):
+    impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale"]
+    for impact_scale in impact_scales:
+        print(impact_scale)
+        sample_model_0, sample_model_1 = impact_model_analysis.sample_model_scores(sentence_ratings,
+                                                                                   impact_scale, ira_threshold)
+        test_0, test_1 = test_samples(sample_model_0, sample_model_1)
+        print("R model X = 0:", test_0["R"], "\tR model X >= 1:", test_1["R"])
+        print("N model X = 0:", test_0["N"], "\tN model X >= 1:", test_1["N"])
+        print("U model X = 0:", test_0["U"], "\tU model X >= 1:", test_1["U"])
+        print()
+        u_statistic, pVal = stats.mannwhitneyu(sample_model_0, sample_model_1)
+        print("SciPy - U:", u_statistic)
+        print("SciPy - p:", pVal)
 
 

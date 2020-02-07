@@ -1,4 +1,4 @@
-from typing import List, Dict, Union
+from typing import List, Dict
 from openpyxl import Workbook
 import json
 import statistics
@@ -108,7 +108,7 @@ def get_sentence_ratings(data_file: str) -> List[dict]:
     return [sentence_doc["_source"] for sentence_doc in data]
 
 
-def write_rating_spreadsheet(sentence_ratings: List[dict]) -> None:
+def write_rating_spreadsheet(sentence_ratings: List[dict], config: dict) -> None:
     wb = Workbook()
     sheets = {
         "annotations": wb.active,
@@ -156,5 +156,4 @@ def write_rating_spreadsheet(sentence_ratings: List[dict]) -> None:
         annotation_row_num += len(sentence["annotations"])
         impact_row_num += 1
 
-    output_file = "reading_impact_questionnaire_data.xlsx"
-    wb.save(filename=output_file)
+    wb.save(filename=config['spreadsheet_file'])
