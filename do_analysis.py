@@ -22,8 +22,6 @@ def do_model_agreement_analysis(sentence_ratings: list, ira_threshold: float, co
         model_agreement_low[impact_scale] = impact_model_analysis.get_model_agreement(sentences_low_ira, impact_scale)
         ignored = len(sentence_ratings) - len(sentences_high_ira) - len(sentences_low_ira)
         print(f'\t{impact_scale: <20}\t{len(sentence_ratings)}\t\t{len(sentences_high_ira)}\t\t{len(sentences_low_ira)}\t\t{ignored}')
-        plot.plot_agreement_model_bubble(impact_scale, model_agreement_high, f"IRA >= {ira_threshold}")
-        plot.plot_agreement_model_bubble(impact_scale, model_agreement_low, f"IRA < {ira_threshold}")
     impact_model_analysis.write_model_agreement_table(model_agreement_high, model_agreement_low,
                                                       ira_threshold, config)
 
@@ -49,6 +47,7 @@ def show_rating_distribution(sentence_ratings: list):
             ratio = round(freq[impact_scale][rating] / total, 2)
             print('\t\trating:', rating, '\tfreq:', freq[impact_scale][rating], '\tratio:', ratio)
         print('\t\tmean:', stats.mean(scale_ratings[impact_scale]), 'variance:', stats.pvariance(scale_ratings[impact_scale]))
+    plot.plot_rating_probability(freq['all'])
 
 
 def do_analysis():

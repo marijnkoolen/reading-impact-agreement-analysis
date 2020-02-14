@@ -123,3 +123,59 @@ def do_model_box_plot(sentences_done: list, ira_threshold: float, config: dict):
     plt.savefig(out_file)
     return None
 
+
+def plot_rating_probability(rating_freq: Counter) -> None:
+    outfile = 'images/rating_probability.png'
+    import numpy as np
+
+    total = sum(rating_freq.values())
+    observed = [freq / total for _rating, freq in sorted(rating_freq.items(), key=lambda x: x[0])]
+
+    # data to plot
+    n_groups = 5
+
+    # create plot
+    plt.subplots()
+    index = np.arange(n_groups)
+    bar_width = 0.5
+    opacity = 0.8
+
+    _ = plt.bar(index, observed, bar_width, alpha=opacity, color='#2C7BB6', label='Rating distribution')
+
+    plt.xlabel('Rating')
+    plt.ylabel('Probability')
+    plt.title('Observed Rating Probability')
+    plt.xticks(index, (0, 1, 2, 3, 4))
+    plt.legend()
+
+    plt.tight_layout()
+    print(f'\n\twriting rating probability distribution to file {outfile}')
+    plt.savefig(outfile)
+    plt.close()
+
+    outfile = 'images/rating_probability-null_distributions.png'
+    inv_tri = [0.2727, 0.1818, 0.0909, 0.1818, 0.2727]
+    uniform = [0.2, 0.2, 0.2, 0.2, 0.2]
+
+    # create plot
+    plt.subplots()
+    index = np.arange(n_groups)
+    bar_width = 0.25
+
+    _ = plt.bar(index, uniform, bar_width, alpha=opacity, color='#2C7BB6', label='Uniform')
+
+    _ = plt.bar(index + bar_width, inv_tri, bar_width, alpha=opacity, color='#D7191C', label='Inverse Triangular')
+
+    _ = plt.bar(index + 2*bar_width, observed, bar_width, alpha=opacity, color='#19B77C', label='Rating distribution')
+
+    plt.xlabel('Rating')
+    plt.ylabel('Probability')
+    plt.title('Observed Rating Probability')
+    plt.xticks(index + bar_width, (0, 1, 2, 3, 4))
+    plt.legend()
+
+    plt.tight_layout()
+    print(f'\n\twriting rating probability distribution to file {outfile}')
+    plt.savefig(outfile)
+    plt.close()
+
