@@ -79,7 +79,7 @@ def score_impact_sentences(sentence_ratings: List[dict], sentence_alpino_data: d
 
 
 def sample_model_scores(sentence_ratings: list, impact_scale: str,
-                        ira_threshold: float) -> Tuple[List[float], List[float]]:
+                        ira_threshold: float, config: dict) -> Tuple[List[float], List[float]]:
     sample_0 = []
     sample_1 = []
     for sentence in sentence_ratings:
@@ -87,7 +87,7 @@ def sample_model_scores(sentence_ratings: list, impact_scale: str,
         # skip sentences with only a single rating (and the rest NAs) or with only NAs
         if len(scores) < 2:
             continue
-        ira_score = human_rater_analysis.calculcate_inter_rater_agreement(scores)
+        ira_score = human_rater_analysis.calculate_sentence_interrater_agreement(scores, config['null_dist'])
         # skip sentences where the IRA is below a given threshold
         if ira_score < ira_threshold:
             continue

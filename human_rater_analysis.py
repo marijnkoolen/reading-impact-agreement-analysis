@@ -1,4 +1,5 @@
 from typing import List, Dict
+from collections import Counter, defaultdict
 from openpyxl import Workbook
 import json
 import statistics
@@ -36,32 +37,109 @@ def calculate_avg_rater_score(impact_scale: str, sentence: dict, avg_type: str =
         raise ValueError("avg_type must be one of 'mean', 'median' or 'mode'")
 
 
-def calculcate_inter_rater_agreement(rater_scores: List[int]) -> float:
-    # σ^2 * mv = 0.5(X_U^2 + X_L^2)−[0.5(X_U + X_L)]2
-    #          = 0.5(5^2 + 1^2) - [0.5(5+1)]^2
-    #          = 0.5(26) - [0.5(6)]^2
-    #          = 13 - 3^2
-    #          = 4
-    max_dissensus = 4
-    var = statistics.variance(rater_scores)
-    # r^∗_{wg}(j)=1−(S_x^2/σ_{mv}^2)
-    ira_score = 1 - (var / max_dissensus)
-    return ira_score
+# We should report agreement using multiple theoretical null-distributions:
+# - uniform null: each point on the scale is equally likely to be chosen -> expected variance = (A^2 - 1) / 12 = 2
+# - normal: raters avoid extremes, so there is a central tendency -> expected variance = 1.04
+# - maximum dissensus: raters always choose extremes -> expected variance = 4
+# We use a five point Likert scale
+def calculate_sentence_interrater_agreement(rater_scores: List[int], null_dist: str) -> float:
+    if null_dist is 'uniform':
+        expected_var = 2
+    elif null_dist is 'normal':     # See LeBreton and Senter (2008)
+        expected_var = 1.04
+    elif null_dist is 'triangular':
+        # See LeBreton and Senter (2008)
+        # rating       1   2   3   4   5
+        # probability .11 .22 .34 .22 .11
+        # rating 3 is twice as likely as ratings 2 and 4, and thrice as likely as ratings 1 and 5
+        expected_var = 1.32
+    elif null_dist is 'inverse_triangular':
+        # Inverse triangular based on triangular distribution in LeBreton and Senter
+        # rating 3 is half as likely as ratings 2 and 4, and one third as likely as ratings 1 and 5
+        # One rating of 3 corresponds to 2 ratings of 2, 2 of 4, and three of 1 and 5 each
+        # Totals 11 ratings, so the following probabilities
+        # rating 1 = 3 / 11 = 0.2727
+        # rating 2 = 2 / 11 = 0.1818
+        # rating 3 = 1 / 11 = 0.0909
+        # rating 4 = 2 / 11 = 0.1818
+        # rating 5 = 3 / 11 = 0.2727
+        # rating        1     2     3     4     5
+        # Mean     =  1 * 3 / 11 + 2 * 2 / 11 + 3 * 1 / 11 + 4 * 2 / 11 + 5 * 3 / 11
+        #          = 33 / 11
+        #          = 3
+        # Variance = 2^2 * 3/11 + 1^2 * 2/11 + 0^2 * 3/11 + 1^2 * 2/11 + 2^2 * 3/11
+        # Variance = 12/11 + 2/11 + 0/11 + 2/11 + 12/11
+        #          = 28/11
+        #          = 2.5454
+        expected_var = 28/11
+    elif null_dist is 'max_dissensus':
+        # σ_{mv}^2 = 0.5(X_U^2 + X_L^2)−[0.5(X_U + X_L)]2
+        #          = 0.5(5^2 + 1^2) - [0.5(5+1)]^2
+        #          = 0.5(26) - [0.5(6)]^2
+        #          = 13 - 3^2
+        #          = 4
+        expected_var = 4
+    else:
+        raise ValueError('"null_dist" must be "normal", "uniform" or "max_dissensus"')
+    # The raters are the population, not a sample, so use population variance
+    var = statistics.pvariance(rater_scores)
+    # r^∗_{wg} = 1 − ( S_x^2 / σ^2 )
+    ira = 1 - (var / expected_var)
+    return ira
 
 
-def get_sentences_high_ira(sentences: List[dict], impact_scale: str, ira_threshold: float) -> List[dict]:
+def get_sentences_high_ira(sentences: List[dict], impact_scale: str, ira_threshold: float, null_dist: str) -> List[dict]:
     filtered = [sentence for sentence in sentences if len(get_rater_scores(sentence, impact_scale)) > 1]
-    return [sentence for sentence in filtered if get_sentence_ira(sentence, impact_scale) >= ira_threshold]
+    return [sentence for sentence in filtered if get_sentence_ira(sentence, impact_scale, null_dist) >= ira_threshold]
 
 
-def get_sentences_low_ira(sentences: List[dict], impact_scale: str, ira_threshold: float) -> List[dict]:
+def get_sentences_low_ira(sentences: List[dict], impact_scale: str, ira_threshold: float, null_dist: str) -> List[dict]:
     filtered = [sentence for sentence in sentences if len(get_rater_scores(sentence, impact_scale)) > 1]
-    return [sentence for sentence in filtered if get_sentence_ira(sentence, impact_scale) < ira_threshold]
+    return [sentence for sentence in filtered if get_sentence_ira(sentence, impact_scale, null_dist) < ira_threshold]
 
 
-def get_sentence_ira(sentence: dict, impact_scale: str) -> float:
+def get_sentence_ira(sentence: dict, impact_scale: str, null_dist: str) -> float:
     scores = get_rater_scores(sentence, impact_scale)
-    return calculcate_inter_rater_agreement(scores)
+    return calculate_sentence_interrater_agreement(scores, null_dist)
+
+
+def get_ira_scores(sentence_ratings: List[dict], impact_scale: str, null_dist) -> List[float]:
+    return [get_sentence_ira(sentence, impact_scale, null_dist) for sentence in sentence_ratings]
+
+
+def get_ira_dist(sentence_ratings: List[dict], null_dist: str):
+    impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale"]
+    ira_dist = defaultdict(Counter)
+    for impact_scale in impact_scales:
+        sentences_rated = [sent for sent in sentence_ratings if len(get_rater_scores(sent, impact_scale)) > 1]
+        ira_scores = get_ira_scores(sentences_rated, impact_scale, null_dist)
+        print(f'\t{impact_scale: <20}\tmean IRA:', statistics.mean(ira_scores), '\tstdev IRA:', statistics.stdev(ira_scores))
+        for ira_score in ira_scores:
+            ira_dist[impact_scale].update([get_ira_range(ira_score)])
+        #for ira_range, freq in sorted(ira_dist[impact_scale].items(), key=lambda x: x[0]):
+        #    print(impact_scale, ira_range, freq)
+    return ira_dist
+
+
+# From O'Neil (2017): For application to the rwg family, the following standards were recommended:
+# 0–0.30 (lack of agreement),
+# 0.31–0.50 (weak agreement),
+# 0.51–0.70 (moderate agreement),
+# 0.71–0.90 (strong agreement),
+# 0.91–1.0 (very strong agreement).
+def get_ira_range(ira_score: float) -> str:
+    symbol = '-' if ira_score < 0.0 else '+'
+    score = abs(ira_score)
+    if score <= 0.3:
+        return symbol + '0.00-0.30'
+    elif score <= 0.5:
+        return symbol + '0.31-0.50'
+    elif score <= 0.7:
+        return symbol + '0.51-0.70'
+    elif score <= 0.9:
+        return symbol + '0.71.0.90'
+    else:
+        return symbol + '0.91-1.00'
 
 
 def get_rater_scores(sentence: dict, impact_scale: str) -> List[int]:
@@ -102,10 +180,23 @@ def parse_impact_scale(impact_scale: str, sentence: dict, sheet, row_num: int) -
     sheet.cell(column=11, row=row_num, value=rule_based_score)
 
 
+def clear_unanswerable_scales(sentence: dict) -> None:
+    impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale", "emotional_valence"]
+    for annotation in sentence['annotations']:
+        if annotation['unanswerable'] is False:
+            continue
+        for impact_scale in impact_scales:
+            if impact_scale in annotation:
+                del annotation[impact_scale]
+
+
 def get_sentence_ratings(data_file: str) -> List[dict]:
     with open(data_file, 'rt') as fh:
         data = json.load(fh)
-    return [sentence_doc["_source"] for sentence_doc in data]
+    sentence_ratings = [sentence_doc["_source"] for sentence_doc in data]
+    for sentence in sentence_ratings:
+        clear_unanswerable_scales(sentence)
+    return sentence_ratings
 
 
 def write_rating_spreadsheet(sentence_ratings: List[dict], config: dict) -> None:
@@ -156,4 +247,5 @@ def write_rating_spreadsheet(sentence_ratings: List[dict], config: dict) -> None
         annotation_row_num += len(sentence["annotations"])
         impact_row_num += 1
 
+    print(f'\twriting ratings to spreadsheet file {config["spreadsheet_file"]}')
     wb.save(filename=config['spreadsheet_file'])

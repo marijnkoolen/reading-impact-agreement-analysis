@@ -6,7 +6,7 @@ import human_rater_analysis
 import impact_model_analysis
 
 
-def make_mwu_test_samples(sentence_ratings: list, ira_threshold: float) -> Dict[str, List[dict]]:
+def make_mwu_test_samples(sentence_ratings: list, ira_threshold: float, config: dict) -> Dict[str, List[dict]]:
     impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale", "emotional_valence"]
     samples = defaultdict(list)
     for sentence in sentence_ratings:
@@ -15,7 +15,7 @@ def make_mwu_test_samples(sentence_ratings: list, ira_threshold: float) -> Dict[
             # skip sentences with only a single rating (and the rest NAs) or with only NAs
             if len(scores) < 2:
                 continue
-            ira_score = human_rater_analysis.calculcate_inter_rater_agreement(scores)
+            ira_score = human_rater_analysis.calculate_sentence_interrater_agreement(scores, config)
             # skip sentences where the IRA is below a given threshold
             if ira_score < ira_threshold:
                 continue
@@ -74,19 +74,18 @@ def test_samples(sample_model_0: List[float], sample_model_1: List[float]):
     return test_0, test_1
 
 
-def do_mann_whitney_u_test(sentence_ratings: list, ira_threshold: float):
+def do_mann_whitney_u_test(sentence_ratings: list, ira_threshold: float, config):
     impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale"]
     for impact_scale in impact_scales:
-        print(impact_scale)
+        print(f'\n\t{impact_scale}')
         sample_model_0, sample_model_1 = impact_model_analysis.sample_model_scores(sentence_ratings,
-                                                                                   impact_scale, ira_threshold)
+                                                                                   impact_scale,
+                                                                                   ira_threshold, config)
         test_0, test_1 = test_samples(sample_model_0, sample_model_1)
-        print("R model X = 0:", test_0["R"], "\tR model X >= 1:", test_1["R"])
-        print("N model X = 0:", test_0["N"], "\tN model X >= 1:", test_1["N"])
-        print("U model X = 0:", test_0["U"], "\tU model X >= 1:", test_1["U"])
-        print()
+        print("\t\tR model X = 0:", test_0["R"], "\tR model X >= 1:", test_1["R"])
+        print("\t\tN model X = 0:", test_0["N"], "\tN model X >= 1:", test_1["N"])
+        print("\t\tU model X = 0:", test_0["U"], "\tU model X >= 1:", test_1["U"])
         u_statistic, pVal = stats.mannwhitneyu(sample_model_0, sample_model_1)
-        print("SciPy - U:", u_statistic)
-        print("SciPy - p:", pVal)
+        print("\t\tU:", u_statistic, "\tp:", pVal)
 
 

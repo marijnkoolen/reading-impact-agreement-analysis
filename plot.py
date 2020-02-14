@@ -86,19 +86,19 @@ def setBoxColors(bp, color1, color2):
     plt.setp(bp['medians'][1], color=color2)
 
 
-def get_data_for_boxplot(sentence_ratings: list, ira_threshold: float):
+def get_data_for_boxplot(sentence_ratings: list, ira_threshold: float, config: dict):
     data_to_plot = {}
     impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale"]
     for impact_scale in impact_scales:
         sample_model_0, sample_model_1 = impact_model_analysis.sample_model_scores(sentence_ratings,
-                                                                                   impact_scale, ira_threshold)
+                                                                                   impact_scale,
+                                                                                   ira_threshold, config)
         data_to_plot[impact_scale] = [sample_model_0, sample_model_1]
     return data_to_plot
 
 
-def do_model_box_plot(sentences_done: list, ira_threshold=0.5):
-    data_to_plot = get_data_for_boxplot(sentences_done, ira_threshold=ira_threshold)
-    #fig = figure()
+def do_model_box_plot(sentences_done: list, ira_threshold: float, config: dict):
+    data_to_plot = get_data_for_boxplot(sentences_done, ira_threshold, config)
     ax = plt.axes()
     scales = ["emotional_scale", "narrative_scale", "style_scale", "reflection_scale"]
     for pos, impact_scale in enumerate(scales):
@@ -111,11 +111,15 @@ def do_model_box_plot(sentences_done: list, ira_threshold=0.5):
     plt.ylim(-1, 6)
     ax.set_xticklabels(['Emotional', 'Narrative', 'Aesthetic', 'Reflection'])
     ax.set_xticks([1.5, 4.5, 7.5, 10.5])
+    ax.set_yticks([0, 1, 2, 3, 4])
+    # plt.xticks(np.arange(min(x), max(x)+1, 1.0))
     # draw temporary red and blue lines and use them to create a legend
     plt.plot([], c='#D7191C', label='Model = 0')
     plt.plot([], c='#2C7BB6', label='Model >= 1')
     plt.legend()
     plt.tight_layout()
-    plt.savefig(os.path.join(config['image_dir'], f'model-comparison-boxplot-IRA-{ira_threshold}.png'))
+    out_file = os.path.join(config['image_dir'], f'model-comparison-boxplot-IRA-{ira_threshold}.png')
+    print(f'\twriting box plot to file {out_file}')
+    plt.savefig(out_file)
     return None
 
