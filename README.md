@@ -1,5 +1,16 @@
 # reading-impact-agreement-analysis
-Interrater agreement and impact model agreement analysis based on labeled sentences from ODBR reviews
+
+This repository contains code and auxiliary materials for the article **Captivating, splendid or instructive? Assessing the impact of reading in online book reviews** by [Peter Boot](http://peterboot.nl/) and [Marijn Koolen](http://marijnkoolen.com/#/). 
+
+This article introduces a prediction model for reading impact expressed in book reviews. The model is evaluated against human judgements on how individual sentences in online book reviews express various types of impact. To validate the human ratings as a gold standard dataset, we performed an analysis of interrater agreement. The article contains the context in which this is done and describes the IRA analysis briefly. 
+
+A detailed explanation of our choices for IRA statistics is available here: [Interrater Agreement](interrater-agreement.md).
+
+The code in this repository is used to do the analysis.
+
+## Running the code
+
+All code is in Python 3.
 
 Install requirements:
 ```bash
