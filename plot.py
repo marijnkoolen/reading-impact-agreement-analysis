@@ -170,7 +170,7 @@ def plot_rating_probability(rating_freq: Counter) -> None:
 
     plt.xlabel('Rating')
     plt.ylabel('Probability')
-    plt.title('Observed Rating Probability')
+    plt.title('Null distributions and observed rating probability')
     plt.xticks(index + bar_width, (0, 1, 2, 3, 4))
     plt.legend()
 
