@@ -16,4 +16,17 @@ Figure 1. Distribution of IRA scores per sentence, for the four impact categorie
 The distribution of IRA scores per sentence and impact category is shown in Figure x. The average IRA is moderate for emotional impact (0.62) and for aesthetic feeling (0.65), and weak for narrative feeling (0.49) and reflection (0.48). We see two main explanations for this lower agreement for the latter two. One explanation is that raters did not have a concrete enough idea of what each category meant so that they rated inconsistently. It is also possible that the individual sentences did not give enough context for the reviewer’s thinking, forcing the raters to fill in the gaps with their own interpretations. This last explanation is somewhat supported by the fact that raters indicated for some sentences that they could not judge them on these categories. 
 
 
+## References
+
+James, L. R., Demaree, R. G., and Wolf, G. (1984). Estimating within group interrater reliability with and without response bias. J. Appl. Psychol. 69, 85–98. doi: 10.1037/0021-9010.69.1.85
+
+James, L. R., Demaree, R. G., and Wolf, G. (1993). rwg: an assessment of within group interrater agreement. J. Appl. Psychol. 78, 306–309. doi: 10.1037/0021-9010.78.2.306
+
+Jamieson, S. (2004). Likert scales: how to (ab) use them. Medical education, 38(12), 1217-1218.
+
+LeBreton, J. M., & Senter, J. L. (2008). Answers to 20 questions about interrater reliability and interrater agreement. Organizational research methods, 11(4), 815-852. 
+
+Lindell, M. K., and Brandt, C. J. (1997). Measuring interrater agreement for ratings of a single target. Appl. Psychol. Meas. 21, 271–278. doi: 10.1177/01466216970213006
+
+Norman, G. (2010). Likert scales, levels of measurement and the “laws” of statistics. Advances in health sciences education, 15(5), 625-632.
 
