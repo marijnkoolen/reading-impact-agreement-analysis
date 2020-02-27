@@ -83,6 +83,8 @@ Calculating interrater agreement using the inverse triangular null-distribution
 	reflection_scale    	mean IRA: 0.48362946279612945 	stdev IRA: 0.45354349187167586
 	narrative_scale     	mean IRA: 0.491273267314934 	stdev IRA: 0.48301007982598076
 
+	writing per sentence IRA score distribution to file images/per_sentence_ira_distribution.png
+
 Plotting human model rating agreement for IRA >= 0.5
 
 	Impact scale    	Total sentences	IRA >= 0.5	IRA < 0.5	Ignored (1 or 0 non-NA ratings)

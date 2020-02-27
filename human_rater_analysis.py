@@ -128,18 +128,23 @@ def get_ira_dist(sentence_ratings: List[dict], null_dist: str):
 # 0.71–0.90 (strong agreement),
 # 0.91–1.0 (very strong agreement).
 def get_ira_range(ira_score: float) -> str:
-    symbol = '-' if ira_score < 0.0 else '+'
     score = abs(ira_score)
-    if score <= 0.3:
-        return symbol + '0.00-0.30'
-    elif score <= 0.5:
-        return symbol + '0.31-0.50'
-    elif score <= 0.7:
-        return symbol + '0.51-0.70'
-    elif score <= 0.9:
-        return symbol + '0.71.0.90'
+    if ira_score < -0.5:
+        return '-0.70 -- -0.51'
+    elif ira_score < -0.3:
+        return '-0.50 -- -0.31'
+    elif ira_score < 0.0:
+        return '-0.30 -- 0.00'
+    elif ira_score <= 0.3:
+        return '0.00 -- +0.30'
+    elif ira_score <= 0.5:
+        return '+0.31 -- +0.50'
+    elif ira_score <= 0.7:
+        return '+0.51 -- +0.70'
+    elif ira_score <= 0.9:
+        return '+0.71 -- +0.90'
     else:
-        return symbol + '0.91-1.00'
+        return '+0.91 -- +1.00'
 
 
 def get_rater_scores(sentence: dict, impact_scale: str) -> List[int]:

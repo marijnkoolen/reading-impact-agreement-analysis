@@ -1,6 +1,7 @@
 from typing import Dict
 from collections import Counter
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 
 import impact_model_analysis
@@ -126,7 +127,6 @@ def do_model_box_plot(sentences_done: list, ira_threshold: float, config: dict):
 
 def plot_rating_probability(rating_freq: Counter) -> None:
     outfile = 'images/rating_probability.png'
-    import numpy as np
 
     total = sum(rating_freq.values())
     observed = [freq / total for _rating, freq in sorted(rating_freq.items(), key=lambda x: x[0])]
@@ -176,6 +176,49 @@ def plot_rating_probability(rating_freq: Counter) -> None:
 
     plt.tight_layout()
     print(f'\n\twriting rating probability distribution to file {outfile}')
+    plt.savefig(outfile)
+    plt.close()
+
+
+def plot_per_sentence_ira_dist(ira_dist: Dict[str, Counter]) -> None:
+    n_groups = 8
+    plt.subplots()
+    index = np.arange(n_groups)
+    bar_width = 0.20
+    opacity = 0.8
+
+    ira_ranges = [
+        '-0.70 -- -0.51',
+        '-0.50 -- -0.31',
+        '-0.30 -- 0.00',
+        '0.00 -- +0.30',
+        '+0.31 -- +0.50',
+        '+0.51 -- +0.70',
+        '+0.71 -- +0.90',
+        '+0.91 -- +1.00'
+    ]
+
+    scale_label = {
+        'emotional_scale':  'Emotional impact',
+        'narrative_scale':  'Narrative feeling',
+        'style_scale':      'Aesthetic feeling',
+        'reflection_scale': 'Reflection'
+    }
+
+    for si, scale in enumerate(scale_label.keys()):
+        scale_values = [ira_dist[scale][ira_range] for ira_range in ira_ranges]
+        _ = plt.bar(index + si * bar_width, scale_values, bar_width, alpha=opacity, label=scale_label[scale])
+
+    plt.xlabel('Per sentence IRA')
+    plt.ylabel('# sentences')
+    plt.title('Distribution of per sentence IRA scores')
+    plt.xticks(index + 1 * bar_width, [ira_range.replace("--", "--\n") for ira_range in ira_ranges])
+    plt.tick_params(axis='x', labelsize=8)
+    plt.legend()
+
+    outfile = 'images/per_sentence_ira_distribution.png'
+    plt.tight_layout()
+    print(f'\n\twriting per sentence IRA score distribution to file {outfile}')
     plt.savefig(outfile)
     plt.close()
 

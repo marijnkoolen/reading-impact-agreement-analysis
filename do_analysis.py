@@ -66,7 +66,8 @@ def do_analysis():
     print("Writing human and model ratings to spreadsheet")
     human_rater_analysis.write_rating_spreadsheet(sentences_done, config)
     print('\nCalculating interrater agreement using the inverse triangular null-distribution')
-    human_rater_analysis.get_ira_dist(sentences_done, 'inverse_triangular')
+    ira_dist = human_rater_analysis.get_ira_dist(sentences_done, 'inverse_triangular')
+    plot.plot_per_sentence_ira_dist(ira_dist)
     config['null_dist'] = 'inverse_triangular'
     for ira_threshold in [0.5]: #, 0.7]:
         print(f"\nPlotting human model rating agreement for IRA >= {ira_threshold}")
