@@ -10,7 +10,7 @@ Where S<sub>X</sub><sup>2</sup> is the variance of the ratings for a sentence an
 
 Raters could indicate if they could not judge a sentence at all. This happened mostly for very short sentences that are uninterpretable without the rest of the review as context, such as ‘Uren.’ (‘Hours.’) or ‘En daar is eigenlijk maar een reden voor.’ (‘And there is only one reason for that’). Of the 348 sentences, 15 were marked as such by at least two of the raters, so no agreement can be computed. These are left out of the rest of the analysis. Although we could have screened the random selection of sentences to filter out such cases, this would make the sample less random and would introduce our own biases for what is interpretable.
 
-![Image is not loading](images/IRA-scores-distribution.png)
+![Image is not loading](images/per_sentence_ira_distribution.png)
 
 Figure 1. Distribution of IRA scores per sentence, for the four impact categories.
 
