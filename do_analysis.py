@@ -69,14 +69,17 @@ def do_analysis():
     ira_dist = human_rater_analysis.get_ira_dist(sentences_done, 'inverse_triangular')
     plot.plot_per_sentence_ira_dist(ira_dist)
     config['null_dist'] = 'inverse_triangular'
-    for ira_threshold in [0.5]: #, 0.7]:
-        print(f"\nPlotting human model rating agreement for IRA >= {ira_threshold}")
-        do_model_agreement_analysis(sentences_done, ira_threshold, config)
-        print(f"\nPerforming Mann-Whitney U test for IRA >= {ira_threshold}")
-        mann_whitney_u_test.do_mann_whitney_u_test(sentences_done, ira_threshold, config)
-        print(f"\nMaking model boxplots for IRA>= {ira_threshold}")
-        plot.do_model_box_plot(sentences_done, ira_threshold, config)
-        print()
+    ira_threshold = 0.5
+    print(f"\nPlotting human model rating agreement for IRA >= {ira_threshold}")
+    do_model_agreement_analysis(sentences_done, ira_threshold, config)
+    print(f"\nPerforming Mann-Whitney U test for IRA >= {ira_threshold}")
+    mann_whitney_u_test.do_mann_whitney_u_test(sentences_done, ira_threshold, config)
+    print(f"\nMaking model boxplots for IRA>= {ira_threshold}")
+    plot.do_model_box_plot(sentences_done, ira_threshold, config)
+    print()
+    print(f"\nPlotting rule matching coverage over reviews")
+    plot.plot_rule_coverage()
+    print()
 
 
 if __name__ == "__main__":

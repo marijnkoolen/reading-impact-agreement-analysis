@@ -1,6 +1,7 @@
 from typing import Dict
 from collections import Counter
 import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
 import os
 
@@ -26,11 +27,12 @@ def plot_num_annotations_distribution(sentence_ratings: list) -> None:
     for num_sentences, freq in sorted(num_sentences_dist.items(), key=lambda item: item[0]):
         num_sentences_values += [num_sentences]
         num_sentences_freq += [freq]
-    plt.bar(num_sentences_values, num_sentences_freq)
+    plt.style.use('grayscale')
+    plt.bar(num_sentences_values, num_sentences_freq, color='#555555')
     plt.xlabel("Number of ratings per rater")
     plt.ylabel("Number of raters")
     plt.title("Distribution of raters over number of ratings provided")
-    plt.savefig(os.path.join(config['image_dir'], "impact_ratings_distribution.png"))
+    plt.savefig(os.path.join(config['image_dir'], "impact_ratings_distribution.eps"))
     plt.clf()
 
 
@@ -46,12 +48,13 @@ def plot_agreement_model_bubble(impact_scale: str, model_agreement: Dict[str, Co
             x += [rater_score]
             y += [model_score]
             s += [num_sentences]
+    plt.style.use('grayscale')
     plt.scatter(x, y, s=s, c="green", alpha=0.4, linewidth=6)
     # Add titles (main and on axis)
     plt.xlabel("Rater score")
     plt.ylabel("Model score")
     title = f"{impact_scale}, {ira_filter}"
-    plot_file = os.path.join(config['image_dir'], f"plot_agreement_model-{impact_scale}-IRA-{ira_filter}.png")
+    plot_file = os.path.join(config['image_dir'], f"plot_agreement_model-{impact_scale}-IRA-{ira_filter}.eps")
     plot_file = plot_file.replace(" >= ", "-above-").replace(" < ", "-below-")
     plt.title(title, loc="left")
     plt.savefig(plot_file)
@@ -100,33 +103,36 @@ def get_data_for_boxplot(sentence_ratings: list, ira_threshold: float, config: d
 
 def do_model_box_plot(sentences_done: list, ira_threshold: float, config: dict):
     data_to_plot = get_data_for_boxplot(sentences_done, ira_threshold, config)
+    plt.style.use('grayscale')
     ax = plt.axes()
     scales = ["emotional_scale", "narrative_scale", "style_scale", "reflection_scale"]
     for pos, impact_scale in enumerate(scales):
         # first boxplot pair
         positions = [pos * 3 + 1, pos * 3 + 2]
+        #plt.style.use('grayscale')
         bp = plt.boxplot(data_to_plot[impact_scale], positions=positions, widths=0.6)
-        setBoxColors(bp, '#D7191C', '#2C7BB6')
+        setBoxColors(bp, '#111111', '#AAAAAA')
     # set axes limits and labels
     plt.xlim(0, 12)
     plt.ylim(-1, 6)
+    plt.ylabel('Human rating')
     ax.set_xticklabels(['Emotional', 'Narrative', 'Aesthetic', 'Reflection'])
     ax.set_xticks([1.5, 4.5, 7.5, 10.5])
     ax.set_yticks([0, 1, 2, 3, 4])
     # plt.xticks(np.arange(min(x), max(x)+1, 1.0))
     # draw temporary red and blue lines and use them to create a legend
-    plt.plot([], c='#D7191C', label='Model = 0')
-    plt.plot([], c='#2C7BB6', label='Model >= 1')
+    plt.plot([], c='#111111', label='Model = 0')
+    plt.plot([], c='#AAAAAA', label='Model >= 1')
     plt.legend()
     plt.tight_layout()
-    out_file = os.path.join(config['image_dir'], f'model-comparison-boxplot-IRA-{ira_threshold}.png')
+    out_file = os.path.join(config['image_dir'], f'model-comparison-boxplot-IRA-{ira_threshold}.eps')
     print(f'\twriting box plot to file {out_file}')
     plt.savefig(out_file)
     return None
 
 
 def plot_rating_probability(rating_freq: Counter) -> None:
-    outfile = 'images/rating_probability.png'
+    outfile = 'images/rating_probability.eps'
 
     total = sum(rating_freq.values())
     observed = [freq / total for _rating, freq in sorted(rating_freq.items(), key=lambda x: x[0])]
@@ -135,12 +141,13 @@ def plot_rating_probability(rating_freq: Counter) -> None:
     n_groups = 5
 
     # create plot
+    plt.style.use('grayscale')
     plt.subplots()
     index = np.arange(n_groups)
     bar_width = 0.5
     opacity = 0.8
 
-    _ = plt.bar(index, observed, bar_width, alpha=opacity, color='#2C7BB6', label='Rating distribution')
+    _ = plt.bar(index, observed, bar_width, alpha=opacity, color='#555555', label='Rating distribution')
 
     plt.xlabel('Rating')
     plt.ylabel('Probability')
@@ -153,11 +160,12 @@ def plot_rating_probability(rating_freq: Counter) -> None:
     plt.savefig(outfile)
     plt.close()
 
-    outfile = 'images/rating_probability-null_distributions.png'
+    outfile = 'images/rating_probability-null_distributions.eps'
     inv_tri = [0.2727, 0.1818, 0.0909, 0.1818, 0.2727]
     uniform = [0.2, 0.2, 0.2, 0.2, 0.2]
 
     # create plot
+    plt.style.use('grayscale')
     plt.subplots()
     index = np.arange(n_groups)
     bar_width = 0.25
@@ -182,6 +190,7 @@ def plot_rating_probability(rating_freq: Counter) -> None:
 
 def plot_per_sentence_ira_dist(ira_dist: Dict[str, Counter]) -> None:
     n_groups = 8
+    plt.style.use('grayscale')
     plt.subplots()
     index = np.arange(n_groups)
     bar_width = 0.20
@@ -216,9 +225,33 @@ def plot_per_sentence_ira_dist(ira_dist: Dict[str, Counter]) -> None:
     plt.tick_params(axis='x', labelsize=8)
     plt.legend()
 
-    outfile = 'images/per_sentence_ira_distribution.png'
+    outfile = 'images/per_sentence_ira_distribution.eps'
     plt.tight_layout()
     print(f'\n\twriting per sentence IRA score distribution to file {outfile}')
     plt.savefig(outfile)
     plt.close()
 
+
+def plot_rule_coverage():
+    stats_file = 'data/top_268-review_sentences_100000-impact-per-review.csv'
+    impact_columns = ['Affect', 'Style', 'Reflection', 'Narrative', 'All']
+    df = pd.read_csv(stats_file, sep='\t')
+    linestyles = ['-', '--', '-.', ':']
+    for ci, column in enumerate(impact_columns):
+        sorted_counts = sorted([(value, count) for value, count in df[column].value_counts().iteritems()])
+        values, counts = zip(*sorted_counts)
+        count_probs = [count / sum(counts) for count in counts]
+        x_values, y_values = values, count_probs
+        if ci < 4:
+            linestyle = linestyles[ci]
+            color = '#111111'
+        else:
+            linestyle = linestyles[0]
+            color = '#AAAAAA'
+        plt.plot(x_values, y_values, label=column, c=color, linestyle=linestyle)
+    plt.legend()
+    plt.xlim(0, 10)
+    plt.xlabel('Number of matching rules per review')
+    plt.ylabel('Fraction of reviews')
+    plt.savefig('images/impact_rule_coverage.eps')
+    plt.close()
