@@ -128,7 +128,7 @@ def do_model_box_plot(sentences_done: list, ira_threshold: float, config: dict):
     out_file = os.path.join(config['image_dir'], f'model-comparison-boxplot-IRA-{ira_threshold}.eps')
     print(f'\twriting box plot to file {out_file}')
     plt.savefig(out_file)
-    return None
+    plt.close()
 
 
 def plot_rating_probability(rating_freq: Counter) -> None:
@@ -234,7 +234,7 @@ def plot_per_sentence_ira_dist(ira_dist: Dict[str, Counter]) -> None:
 
 def plot_rule_coverage():
     stats_file = 'data/top_268-review_sentences_100000-impact-per-review.csv'
-    impact_columns = ['Affect', 'Style', 'Reflection', 'Narrative', 'All']
+    impact_columns = ['Emotional_impact', 'Aesthetic_feeling', 'Reflection', 'Narrative_feeling', 'All']
     df = pd.read_csv(stats_file, sep='\t')
     linestyles = ['-', '--', '-.', ':']
     for ci, column in enumerate(impact_columns):
