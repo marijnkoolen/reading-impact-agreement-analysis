@@ -43,17 +43,17 @@ def calculate_avg_rater_score(impact_scale: str, sentence: dict, avg_type: str =
 # - maximum dissensus: raters always choose extremes -> expected variance = 4
 # We use a five point Likert scale
 def calculate_sentence_interrater_agreement(rater_scores: List[int], null_dist: str) -> float:
-    if null_dist is 'uniform':
+    if null_dist == 'uniform':
         expected_var = 2
-    elif null_dist is 'normal':     # See LeBreton and Senter (2008)
+    elif null_dist == 'normal':     # See LeBreton and Senter (2008)
         expected_var = 1.04
-    elif null_dist is 'triangular':
+    elif null_dist == 'triangular':
         # See LeBreton and Senter (2008)
         # rating       1   2   3   4   5
         # probability .11 .22 .34 .22 .11
         # rating 3 is twice as likely as ratings 2 and 4, and thrice as likely as ratings 1 and 5
         expected_var = 1.32
-    elif null_dist is 'inverse_triangular':
+    elif null_dist == 'inverse_triangular':
         # Inverse triangular based on triangular distribution in LeBreton and Senter
         # rating 3 is half as likely as ratings 2 and 4, and one third as likely as ratings 1 and 5
         # One rating of 3 corresponds to 2 ratings of 2, 2 of 4, and three of 1 and 5 each
@@ -72,7 +72,7 @@ def calculate_sentence_interrater_agreement(rater_scores: List[int], null_dist: 
         #          = 28/11
         #          = 2.5454
         expected_var = 28/11
-    elif null_dist is 'max_dissensus':
+    elif null_dist == 'max_dissensus':
         # σ_{mv}^2 = 0.5(X_U^2 + X_L^2)−[0.5(X_U + X_L)]2
         #          = 0.5(5^2 + 1^2) - [0.5(5+1)]^2
         #          = 0.5(26) - [0.5(6)]^2

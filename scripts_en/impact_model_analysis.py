@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple
 from collections import defaultdict
+import os
 import tarfile
 import json
 import pickle
@@ -113,10 +114,11 @@ def get_model_agreement(sentences: list, impact_scale: str) -> Counter:
 
 def write_model_agreement_table(agreement_high: Dict[str, Counter], agreement_low: Dict[str, Counter],
                                 ira_threshold: float, config: dict):
-    with open(f"data/model_agreement.IRA_treshold-{ira_threshold}.csv", 'wt') as fh:
+    output_file = os.path.join(config['data_dir'], f'model_agreement.IRA_treshold-{ira_threshold}.csv')
+    with open(output_file, 'wt') as fh:
         csv_writer = csv.writer(fh, delimiter="\t")
         for impact_scale in config['impact_scales']:
-            headers = ["", "model"] + [hr / 2 for hr in range(0, 9)] + ["total"]
+            headers = ["", "model"] + [str(hr / 2) for hr in range(0, 9)] + ["total"]
             csv_writer.writerow([f"IRA >= {ira_threshold}", impact_scale, "human rating"])
             csv_writer.writerow(headers)
             for model_rating in [0, 1]:

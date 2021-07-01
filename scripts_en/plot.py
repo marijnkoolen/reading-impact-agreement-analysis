@@ -32,7 +32,7 @@ def plot_num_annotations_distribution(sentence_ratings: list) -> None:
     plt.xlabel("Number of ratings per rater")
     plt.ylabel("Number of raters")
     plt.title("Distribution of raters over number of ratings provided")
-    plt.savefig(os.path.join(config['image_dir'], "impact_ratings_distribution.eps"))
+    plt.savefig(os.path.join(config['image_dir'], "impact_ratings_distribution.png"))
     plt.clf()
 
 
@@ -92,8 +92,7 @@ def setBoxColors(bp, color1, color2):
 
 def get_data_for_boxplot(sentence_ratings: list, ira_threshold: float, config: dict):
     data_to_plot = {}
-    impact_scales = ["emotional_scale", "style_scale", "reflection_scale", "narrative_scale"]
-    for impact_scale in impact_scales:
+    for impact_scale in config['impact_scales']:
         sample_model_0, sample_model_1 = impact_model_analysis.sample_model_scores(sentence_ratings,
                                                                                    impact_scale,
                                                                                    ira_threshold, config)
@@ -105,8 +104,7 @@ def do_model_box_plot(sentences_done: list, ira_threshold: float, config: dict):
     data_to_plot = get_data_for_boxplot(sentences_done, ira_threshold, config)
     plt.style.use('grayscale')
     ax = plt.axes()
-    scales = ["emotional_scale", "narrative_scale", "style_scale", "reflection_scale"]
-    for pos, impact_scale in enumerate(scales):
+    for pos, impact_scale in enumerate(config['impact_scales']):
         # first boxplot pair
         positions = [pos * 3 + 1, pos * 3 + 2]
         #plt.style.use('grayscale')
@@ -132,7 +130,7 @@ def do_model_box_plot(sentences_done: list, ira_threshold: float, config: dict):
 
 
 def plot_rating_probability(rating_freq: Counter) -> None:
-    outfile = 'images/rating_probability.eps'
+    outfile = os.path.join(config['image_dir'], 'rating_probability.png')
 
     total = sum(rating_freq.values())
     observed = [freq / total for _rating, freq in sorted(rating_freq.items(), key=lambda x: x[0])]
@@ -160,7 +158,7 @@ def plot_rating_probability(rating_freq: Counter) -> None:
     plt.savefig(outfile)
     plt.close()
 
-    outfile = 'images/rating_probability-null_distributions.eps'
+    outfile = os.path.join(config['image_dir'], 'rating_probability-null_distributions.png')
     inv_tri = [0.2727, 0.1818, 0.0909, 0.1818, 0.2727]
     uniform = [0.2, 0.2, 0.2, 0.2, 0.2]
 
@@ -193,7 +191,7 @@ def plot_per_sentence_ira_dist(ira_dist: Dict[str, Counter]) -> None:
     plt.style.use('grayscale')
     plt.subplots()
     index = np.arange(n_groups)
-    bar_width = 0.20
+    bar_width = 0.10
     opacity = 0.8
 
     ira_ranges = [
@@ -211,7 +209,11 @@ def plot_per_sentence_ira_dist(ira_dist: Dict[str, Counter]) -> None:
         'emotional_scale':  'Emotional impact',
         'narrative_scale':  'Narrative feeling',
         'style_scale':      'Aesthetic feeling',
-        'reflection_scale': 'Reflection'
+        'reflection_scale': 'Reflection',
+        'humor_scale': 'Humor',
+        'negative_scale': 'Negative feeling',
+        'attention_scale': 'Attention',
+        'surprise_Scale': 'Surprise'
     }
 
     for si, scale in enumerate(scale_label.keys()):
@@ -225,7 +227,7 @@ def plot_per_sentence_ira_dist(ira_dist: Dict[str, Counter]) -> None:
     plt.tick_params(axis='x', labelsize=8)
     plt.legend()
 
-    outfile = 'images/per_sentence_ira_distribution.eps'
+    outfile = os.path.join(config['image_dir'], 'per_sentence_ira_distribution.png')
     plt.tight_layout()
     print(f'\n\twriting per sentence IRA score distribution to file {outfile}')
     plt.savefig(outfile)
@@ -233,9 +235,12 @@ def plot_per_sentence_ira_dist(ira_dist: Dict[str, Counter]) -> None:
 
 
 def plot_rule_coverage():
-    stats_file = 'data/top_268-review_sentences_100000-impact-per-review.csv'
-    impact_columns = ['Emotional_impact', 'Aesthetic_feeling', 'Reflection', 'Narrative_feeling', 'All']
-    df = pd.read_csv(stats_file, sep='\t')
+    impact_columns = [
+        'Emotional_impact', 'Aesthetic_feeling', 'Reflection', 'Narrative_feeling',
+        'Humor', 'Negative feeling', 'Attention', 'Surprise'
+        'All'
+    ]
+    df = pd.read_csv(config['aggr_impact_file'], sep='\t')
     linestyles = ['-', '--', '-.', ':']
     for ci, column in enumerate(impact_columns):
         sorted_counts = sorted([(value, count) for value, count in df[column].value_counts().iteritems()])
@@ -253,5 +258,6 @@ def plot_rule_coverage():
     plt.xlim(0, 10)
     plt.xlabel('Number of matching rules per review')
     plt.ylabel('Fraction of reviews')
-    plt.savefig('images/impact_rule_coverage.eps')
+    outfile = os.path.join(config['image_dir'], 'impact_rule_coverage.png')
+    plt.savefig(outfile)
     plt.close()

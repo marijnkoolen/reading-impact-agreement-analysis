@@ -1,4 +1,4 @@
-matplotlib==2.0.2
-scipy==0.18.1
-openpyxl==2.5.4
-typing==3.7.4.1
+matplotlib>=2.0.2
+scipy>=0.18.1
+openpyxl>=2.5.4
+typing>=3.7.4.1
